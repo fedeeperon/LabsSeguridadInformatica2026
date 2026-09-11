@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: AGPL-3.0-or-later
+# Copyright (C) 2026 Fernando Boiero — CyberLab UTN FRVM
 """
 presentacion.py — CyberLab UTN · presentación de terminal (curses, bien hacker).
 
@@ -8,7 +10,7 @@ presentacion.py — CyberLab UTN · presentación de terminal (curses, bien hack
 
 Solo biblioteca estándar. La animación necesita una terminal real (TTY).
 """
-import curses, math, random, sys, time
+import curses, locale, math, random, sys, time
 
 def _put(stdscr, y, x, ch, attr):
     h, w = stdscr.getmaxyx()
@@ -50,6 +52,22 @@ FIN = [
  "  ███████╗██╗███╗   ██╗", "  ██╔════╝██║████╗  ██║", "  █████╗  ██║██╔██╗ ██║",
  "  ██╔══╝  ██║██║╚██╗██║", "  ██║     ██║██║ ╚████║", "  ╚═╝     ╚═╝╚═╝  ╚═══╝",
 ]
+SKULL = [
+ "        _.,----,._        ",
+ "      .:'        `:.      ",
+ "    .:'            `:.    ",
+ "   ::                ::   ",
+ "  ::    .-.    .-.    ::  ",
+ "  ::   (o o)  (o o)   ::  ",
+ "  ::    `-'    `-'    ::  ",
+ "   ::        ^       ::   ",
+ "    ::    .-===-.   ::    ",
+ "     ::  ( |||| )  ::     ",
+ "      `:.  `--'  .:'      ",
+ "        `:.,__,.:'        ",
+ "       |  |  |  |  |      ",
+ "       '--'--'--'--'      ",
+]
 
 def L(*seg):  # una línea = lista de (texto, color)
     return list(seg)
@@ -59,9 +77,21 @@ SLIDES = [
  {"center": True, "art": (COVER, G), "lines": [
    L(("", W)),
    L(("Práctico de Seguridad Informática — de la tríada CIA a los agentes", W)),
-   L(("autónomos y de vuelta a la defensa. Diez labs + un engagement final.", W)),
+   L(("autónomos, la defensa y la forensia. Once labs + un engagement final.", W)),
    L(("", W)),
    L(("UTN · FRVM   /   Seguridad Informática   /   2026   /   ", D), ("Ing. Fernando Boiero", G)),
+ ]},
+ # NOVEDADES (desde la clase del 04/09)
+ {"kicker": "NOVEDADES · desde la clase del 04/09", "lines": [
+   L(("Sincronizá tu fork y bajá lo nuevo. Nada de lo que ya hiciste cambia.", W)),
+   L(("", W)),
+   L(("1  ", G), ("Presentación de TERMINAL (esta) — matrix, radar, calavera, decode.", D)),
+   L(("2  ", G), ("Guía dinámica de las 11 clases (gancho + ejemplo + dato hacker).", D)),
+   L(("3  ", G), ("Banco de ~30 retos bonus con más tools (★/★★/★★★) por lab.", D)),
+   L(("4  ", G), ("Lab 11 NUEVO — Forensia DFIR: de atacar a investigar.", D)),
+   L(("5  ", G), ("timeline.py — automatizás la línea de tiempo del ataque.", D)),
+   L(("", W)),
+   L(("Cómo seguir  ", A), ("git fetch upstream  &&  git merge upstream/main", C)),
  ]},
  # 2
  {"kicker": "Qué es", "title": "Se aprende haciendo", "lines": [
@@ -80,7 +110,7 @@ SLIDES = [
    L(("[04] ", G), ("Sin atajos                   ", W), ("nadie se hace pentester en dos horas", D)),
  ]},
  # 4
- {"kicker": "El programa · 10 labs + final", "lines": [
+ {"kicker": "El programa · 11 labs + final", "lines": [
    L(("FUNDAMENTOS · CÓDIGO (Python)          ", G), ("OFENSIVA · Docker", C)),
    L(("┌─────────────────────────────┐    ┌─────────────────────────────┐", D)),
    L(("│ 01 Introducción (CIA, hash) │    │ 05 Reconocimiento           │", W)),
@@ -89,6 +119,7 @@ SLIDES = [
    L(("│ 04 Marcos normativos        │    │ 08 Post-explotación         │", W)),
    L(("│                             │    │ 09 Agentes de IA            │", W)),
    L(("│                             │    │ 10 Detección y evasión      │", W)),
+   L(("│                             │    │ 11 Forensia (DFIR)          │", W)),
    L(("└─────────────────────────────┘    └─────────────────────────────┘", D)),
    L(("", W)),
    L(("★ ", A), ("…y todo desemboca en el Práctico Final: engagement + informe.", W)),
@@ -116,6 +147,99 @@ SLIDES = [
    L(("", W)),
    L(("Las flags te enganchan. ", W), ("El informe es lo que evalúa la rúbrica.", G)),
  ]},
+ # --- LAS CLASES, UNA POR UNA ---
+ {"center": True, "art": (["  L A S   C L A S E S ", "  ·  una por una  ·  "], G), "lines": [
+   L(("", W)), L(("11 clases + el práctico final. Gancho, idea, ejemplo y dato hacker.", W)),
+   L(("Usá g para saltar directo a la que vas a dar hoy.", D)),
+ ]},
+ {"kicker": "CLASE 01 · INTRODUCCIÓN — tríada CIA   [código]", "lines": [
+   L(("Te roban la base de clientes. ¿QUÉ propiedad se rompió exactamente?", W)),
+   L(("IDEA    ", G), ("todo se para sobre 3 patas: Confidencialidad · Integridad · Disponibilidad.", D)),
+   L(("EJEMPLO ", C), ("WannaCry no robó datos, los CIFRÓ: rompió disponibilidad, no la C.", D)),
+   L(("TOOLS   ", C), ("Python + hashlib · manifiesto de hashes que detecta 1 byte de cambio.", D)),
+   L(("HACÉS   ", G), ("analizás un incidente con la lente CIA + verificador de integridad.", D)),
+   L(("DATO    ", A), ("efecto avalancha: cambiás una coma y el hash es irreconocible.", A)),
+ ]},
+ {"kicker": "CLASE 02 · CRIPTOGRAFÍA   [código]", "lines": [
+   L(("El 99% de las fallas de cripto no es romper AES: es USARLO mal.", W)),
+   L(("IDEA    ", G), ("Kerckhoffs: seguro aunque conozcan todo, menos la clave.", D)),
+   L(("EJEMPLO ", C), ("Adobe 2013: contraseñas con ECB, el 'pingüino' se veía a través.", D)),
+   L(("TOOLS   ", C), ("hashlib · hmac · secrets.", D)),
+   L(("HACÉS   ", G), ("rompés un XOR por frecuencia + MAC con HMAC (length-extension).", D)),
+   L(("DATO    ", A), ("comparar MACs con == filtra el secreto por el TIEMPO. Timing attack.", A)),
+ ]},
+ {"kicker": "CLASE 03 · AUTENTICACIÓN   [código]", "lines": [
+   L(("'¿Sos quien decís ser?' es la puerta de TODO. Si se rompe, nada importa.", W)),
+   L(("IDEA    ", G), ("contraseñas con salt + muchas iteraciones. Nunca en claro ni sha256 pelado.", D)),
+   L(("EJEMPLO ", C), ("LinkedIn 2012: 6,5M en SHA-1 sin salt, reventadas en bloque.", D)),
+   L(("TOOLS   ", C), ("pbkdf2_hmac · hmac · secrets.", D)),
+   L(("HACÉS   ", G), ("PBKDF2 + TOTP (2FA) desde cero, validado contra el RFC 6238.", D)),
+   L(("DATO    ", A), ("el TOTP se basa en el reloj: si tenés la hora corrida, no anda.", A)),
+ ]},
+ {"kicker": "CLASE 04 · MARCOS NORMATIVOS Y RIESGO   [código]", "lines": [
+   L(("'Poné un firewall' NO es una decisión. 'Evita $15k, cuesta $8k' SÍ lo es.", W)),
+   L(("IDEA    ", G), ("no existe 'seguro'; existe riesgo aceptable, medido. ALE = pérdida x frecuencia.", D)),
+   L(("EJEMPLO ", C), ("meteorito: impacto altísimo x prob ínfima = ALE bajo -> lo aceptás.", D)),
+   L(("TOOLS   ", C), ("Python (calculadora de riesgo) · ISO 27001 · NIST CSF.", D)),
+   L(("HACÉS   ", G), ("aplicás un marco a PhantomCorp + calculás ALE y ROI de controles.", D)),
+   L(("DATO    ", A), ("el 'riesgo cero' no existe y buscarlo te funde. Gestionar > temer.", A)),
+ ]},
+ {"kicker": "CLASE 05 · RECONOCIMIENTO   [ofensivo]", "lines": [
+   L(("Antes de robar una casa, el ladrón la mira una semana. Eso es recon.", W)),
+   L(("IDEA    ", G), ("un puerto abierto no es hallazgo; identificado y clasificado, SÍ.", D)),
+   L(("EJEMPLO ", C), ("nmap -p- encuentra el 8081 con un Jenkins viejo sin auth.", D)),
+   L(("TOOLS   ", C), ("nmap · ncat · curl · whois · dig.", D)),
+   L(("HACÉS   ", G), ("mapeás la superficie de PhantomCorp, clasificás contra CVE. 5 flags.", D)),
+   L(("DATO    ", A), ("el puerto 31337 es 'eleet'; casi siempre un backdoor olvidado.", A)),
+ ]},
+ {"kicker": "CLASE 06 · ENUMERACIÓN   [ofensivo]", "lines": [
+   L(("'Hay un web server.' ¿Y? Son decenas de rutas y archivos que no linkeó nadie.", W)),
+   L(("IDEA    ", G), ("todo servicio esconde más de lo que muestra. Preguntá por lo oculto.", D)),
+   L(("EJEMPLO ", C), ("un /.git/ expuesto = el código fuente COMPLETO en tus manos.", D)),
+   L(("TOOLS   ", C), ("dirb · gobuster · whatweb · wfuzz · nmap NSE.", D)),
+   L(("HACÉS   ", G), ("directorios ocultos, .git, métodos HTTP, API de usuarios. 5 flags.", D)),
+   L(("DATO    ", A), ("robots.txt: el archivo que oculta rutas... es un mapa para el atacante.", A)),
+ ]},
+ {"kicker": "CLASE 07 · EXPLOTACIÓN   [ofensivo]", "lines": [
+   L(("¿Cómo pasás de 'veo el login' a 'estoy adentro como admin'? Sin suerte.", W)),
+   L(("IDEA    ", G), ("tu DATO se ejecuta como CÓDIGO cuando se rompe esa frontera.", D)),
+   L(("EJEMPLO ", C), ("user = admin'--  comenta el chequeo de pass. Entraste sin la clave.", D)),
+   L(("TOOLS   ", C), ("curl (a mano) · sqlmap (después de entender). Backend sqlite real.", D)),
+   L(("HACÉS   ", G), ("SQLi, command injection (RCE), path traversal, IDOR. 5 flags.", D)),
+   L(("DATO    ", A), ("TalkTalk 2015: UNA SQLi, 157.000 clientes, multa récord.", A)),
+ ]},
+ {"kicker": "CLASE 08 · POST-EXPLOTACIÓN   [ofensivo]", "lines": [
+   L(("Lograste el RCE. Estás adentro. ¿Y ahora? Un shell es el principio, no el final.", W)),
+   L(("IDEA    ", G), ("escalar a root, pivotear a la red interna, robar credenciales, automatizar.", D)),
+   L(("EJEMPLO ", C), ("find / -perm -4000 -> una copia SUID de bash -> bash -p -> root.", D)),
+   L(("TOOLS   ", C), ("find · curl · scripting. Dos hosts en redes segmentadas.", D)),
+   L(("HACÉS   ", G), ("recon del host, loot, escalada SUID, pivoting a la DB interna. 5 fases.", D)),
+   L(("DATO    ", A), ("el equipo comprometido inicial suele ser irrelevante: el pivot abre el reino.", A)),
+ ]},
+ {"kicker": "CLASE 09 · AGENTES DE PENTEST   [ofensivo · IA]", "lines": [
+   L(("Un 'agente' suena a magia. Es un LOOP de 4 pasos que dibujás en una servilleta.", W)),
+   L(("IDEA    ", G), ("el LLM decide -> guardrail valida -> tool ejecuta -> resultado -> repite.", D)),
+   L(("EJEMPLO ", C), ("el LLM ve 'pedí el token en /api/token', lo pide y lo encadena solo.", D)),
+   L(("TOOLS   ", C), ("cliente agnóstico: Claude · OpenAI · mock (sin API key). Guardrails.", D)),
+   L(("HACÉS   ", G), ("construís y dirigís tu agente con guardrails, y lo auditás.", D)),
+   L(("DATO    ", A), ("sin guardrail, el agente escanea un host de terceros que 'vio'. Peligroso.", A)),
+ ]},
+ {"kicker": "CLASE 10 · DETECCIÓN Y EVASIÓN   [Blue vs Red]", "lines": [
+   L(("5 clases fuiste el atacante. Date vuelta: del otro lado siempre miraron.", W)),
+   L(("IDEA    ", G), ("el IDS detecta por FIRMAS: poderoso pero frágil, solo ve lo que conoce.", D)),
+   L(("EJEMPLO ", C), ("firma detecta 'UNION SELECT'; UNION/**/SELECT la evade. Mismo ataque.", D)),
+   L(("TOOLS   ", C), ("target IDS/SOC · curl para evadir · análisis de logs.", D)),
+   L(("HACÉS   ", G), ("disparás, evadís una firma, y cazás una intrusión en el ruido. 5 retos.", D)),
+   L(("DATO    ", A), ("en casi toda brecha, la evidencia estaba en los logs desde el día uno.", A)),
+ ]},
+ {"kicker": "CLASE 11 · FORENSIA DEL PENTEST (DFIR)   [defensivo]", "lines": [
+   L(("El atacante entró, hizo su desastre y se fue. ¿Qué tocó? ¿Sigue adentro?", W)),
+   L(("IDEA    ", G), ("reconstruir lo que pasó desde la evidencia: RAM, disco, logs. Cadena de custodia.", D)),
+   L(("EJEMPLO ", C), ("borró el historial, pero en la RAM sigue el proceso y la conexión abierta.", D)),
+   L(("TOOLS   ", C), ("Volatility (memoria) · imagen de disco · timeline de logs · hashing.", D)),
+   L(("HACÉS   ", G), ("analizás RAM y disco, armás la línea de tiempo, extraés IOCs, documentás.", D)),
+   L(("DATO    ", A), ("Locard: 'todo contacto deja un rastro'. La RAM se pierde al apagar. Corré.", A)),
+ ]},
  # 7
  {"kicker": "05–08 · a mano, siempre primero", "title": "El pentest, sin atajos", "lines": [
    L(("05 Reconocimiento   ", G), ("nmap, banners, headers, robots — mapear y clasificar", D)),
@@ -130,7 +254,7 @@ SLIDES = [
    L(("│ ", D), ("ATACANTE", W), ("   │────────▶│ ", D), ("VÍCTIMA", G), ("    │───────▶│ ", D), ("DB INTERNA", W), (" │", D)),
    L(("│ ", D), ("tu consola", D), (" │         │ ", D), ("2 redes", D), ("    │         │ ", D), ("crown", D), ("      │", D)),
    L(("└─────┬──────┘         └────────────┘         └─────▲──────┘", D)),
-   L(("      ", D), ("╎  ✗ sin ruta directa — segmentado ", R), ("            │", D)),
+   L(("      ", D), (":  ✗ sin ruta directa — segmentado ", R), ("            │", D)),
    L(("      ", D), ("└──────────────────────────────────────────────┘", R)),
    L(("", W)),
    L(("El atacante no llega a la DB. La víctima vive en las dos redes: el trampolín.", D)),
@@ -141,7 +265,7 @@ SLIDES = [
    L(("│ ", D), ("LLM razona", W), ("│────────▶│ ", D), ("GUARDRAIL", V), (" │─────▶│ ", D), ("TOOL", W), ("      │", D)),
    L(("│ ", D), ("¿qué tool?", D), ("│         │ ", D), ("¿alcance?", D), (" │      │ ", D), ("nmap/curl", D), (" │", D)),
    L(("└─────▲─────┘         └─────┬─────┘      └─────┬─────┘", D)),
-   L(("      ", D), ("│  resultado ↺      ", G), ("│ ✗ fuera        ", A), ("│", G)),
+   L(("      ", D), ("│  resultado <~      ", G), ("│ ✗ fuera        ", A), ("│", G)),
    L(("      ", G), ("└───────────────────┴─────[ ", G), ("✗ BLOQUEA", A), (" ]", G)),
    L(("", W)),
    L(("El LLM razona; tu código pone las manos (tools) y los límites (guardrails).", D)),
@@ -149,7 +273,7 @@ SLIDES = [
  ]},
  # 10 · detección
  {"kicker": "Unidad 10 · Detección y evasión", "lines": [
-   L(("?q=UNION SELECT      ──▶ ┌──────────┐ ──match──▶  ", W), ("🚫 ALERTA", R)),
+   L(("?q=UNION SELECT      ──▶ ┌──────────┐ ──match──▶  ", W), ("[X] ALERTA", R)),
    L(("                        │ ", D), ("IDS·firma", C), (" │", D)),
    L(("?q=UNION/**/SELECT   ──▶ │ ", D), ("\\s+select", D), (" │ ─no match▶ ", D), ("✓ evadido", A)),
    L(("                        └──────────┘", D)),
@@ -186,10 +310,10 @@ SLIDES = [
    L(("▸ grupos 4–5 en entregas/      ▸ flags: pudiste · informe: entendiste", W)),
    L(("▸ los commits de todos cuentan ▸ uso de IA declarado (obligatorio)", W)),
    L(("", W)),
-   L(("⚠ Uso responsable. ", A), ("Solo contra los contenedores de la cátedra. Ley 26.388.", D)),
+   L(("[!] Uso responsable. ", A), ("Solo contra los contenedores de la cátedra. Ley 26.388.", D)),
  ]},
  # 14 · fin
- {"center": True, "art": (FIN, G), "lines": [
+ {"center": True, "art": (SKULL, G), "lines": [
    L(("", W)),
    L(("El humano ", W), ("dirige", G), (". La máquina ejecuta.", W)),
    L(("La diferencia entre un pentester y un delincuente es la autorización,", D)),
@@ -203,7 +327,7 @@ N = len(SLIDES)
 # ── lluvia de Matrix ─────────────────────────────────────────────────────
 def matrix_rain(stdscr, seconds=2.6):
     h, w = stdscr.getmaxyx()
-    chars = "01<>|/\\=+*[]{}#$%&@ABCDEFλψχφ"
+    chars = "01<>|/\\=+*[]{}#$%&@ABCDEF"
     drops = [random.randint(-h, 0) for _ in range(w)]
     stdscr.nodelay(True); stdscr.erase()
     end = time.time() + seconds
@@ -252,7 +376,7 @@ def boot_sequence(stdscr):
     # barra de progreso
     barw = min(46, w - 12); y += 1
     for f in range(barw + 1):
-        fill = "█" * f + "░" * (barw - f)
+        fill = "#" * f + "." * (barw - f)
         pct = int(f * 100 / barw)
         try:
             stdscr.addstr(y, 4, "handshake [", cp(D))
@@ -269,7 +393,12 @@ def boot_sequence(stdscr):
     stdscr.nodelay(False); stdscr.erase()
 
 # ── radar / sonar (escena "escaneando") ──────────────────────────────────
-def radar_scan(stdscr, sweeps=2):
+# Velocidad del radar (ajustá acá):
+RADAR_SWEEPS = 2        # cuántas vueltas completas da el haz
+RADAR_DELAY  = 0.020    # segundos por cuadro — MÁS chico = MÁS rápido; MÁS grande = MÁS lento
+RADAR_STEPS  = 56       # cuadros por vuelta — MÁS chico = giro más veloz
+
+def radar_scan(stdscr, sweeps=RADAR_SWEEPS):
     h, w = stdscr.getmaxyx()
     cy, cx = h // 2, max(10, w // 2 - 8)
     r = max(5, min(h // 2 - 3, w // 4 - 6))
@@ -277,7 +406,7 @@ def radar_scan(stdscr, sweeps=2):
     targets = [(rnd.uniform(0, 2 * math.pi), rnd.uniform(0.35, 0.92)) for _ in range(6)]
     primary = targets[2]
     stdscr.nodelay(True)
-    steps = 64
+    steps = RADAR_STEPS
     for t in range(sweeps * steps + 1):
         ang = (t % steps) / steps * 2 * math.pi
         vueltas = t / steps
@@ -308,13 +437,115 @@ def radar_scan(stdscr, sweeps=2):
         _put(stdscr, h - 2, 3, f"hosts detectados: {len(targets)}   ·   sweep {int(vueltas)+1}/{sweeps}", cp(D))
         stdscr.refresh()
         if stdscr.getch() != -1: break
-        time.sleep(0.028)
-    time.sleep(0.45)
+        time.sleep(RADAR_DELAY)
+    time.sleep(0.35)
+    stdscr.nodelay(False); stdscr.erase()
+
+# ── firewall vulnerado · candado que se abre ─────────────────────────────
+PADLOCK_CLOSED = [
+    r"     _____     ",
+    r"    /     \    ",
+    r"   |       |   ",
+    r"   |       |   ",
+    r" __|       |__ ",
+    r"|             |",
+    r"|    _____    |",
+    r"|   |     |   |",
+    r"|   | (o) |   |",
+    r"|   |_____|   |",
+    r"|             |",
+    r"|_____________|",
+]
+PADLOCK_OPEN = [
+    r"     _____     ",
+    r"    /     \____",
+    r"   |          |",
+    r"   |           ",
+    r" __|           ",
+    r"|             |",
+    r"|    _____    |",
+    r"|   |     |   |",
+    r"|   | (o) |   |",
+    r"|   |_____|   |",
+    r"|             |",
+    r"|_____________|",
+]
+
+def firewall_breach(stdscr, seconds=4.2):
+    h, w = stdscr.getmaxyx()
+    stdscr.nodelay(True)
+    lw = max(len(l) for l in PADLOCK_CLOSED)
+    lh = len(PADLOCK_CLOSED)
+    py = max(2, h // 2 - lh // 2)
+    def puts(y, x, s, attr):
+        for j, ch in enumerate(s):
+            _put(stdscr, y, x + j, ch, attr)
+    def draw_wall(crack):
+        row = "[==]" * (w // 4 + 2)
+        for y in range(h):
+            off = (y % 2) * 2
+            line = row[off:off + w]
+            for x, ch in enumerate(line):
+                if crack and random.random() < crack:
+                    continue
+                _put(stdscr, y, x, ch, cp(D))
+    def draw_lock(art, color, jit=0):
+        px = (w - lw) // 2 + jit
+        for i in range(lh):                      # foco: limpia la caja
+            puts(py + i, px - 1, " " * (lw + 2), curses.A_NORMAL)
+        for i, line in enumerate(art):
+            puts(py + i, px, line, cp(color, True))
+    steps = int(seconds / 0.05)
+    for t in range(steps):
+        pr = t / steps
+        stdscr.erase()
+        draw_wall(0.0 if pr < 0.75 else (pr - 0.75) * 1.4)
+        if pr < 0.78:
+            jit = random.choice([-1, 0, 0, 1]) if pr > 0.28 else 0
+            blink = R if int(t * 0.5) % 2 else A
+            draw_lock(PADLOCK_CLOSED, blink, jit)
+            puts(1, 3, f"[ BREACHING FIREWALL ]  intento {int(pr * 99999):05d}", cp(R, True))
+            barw = min(40, w - 16); f = int(pr / 0.78 * barw)
+            puts(h - 2, 3, "brute-force [" + "#" * f + "-" * (barw - f) + "]", cp(A))
+        else:
+            draw_lock(PADLOCK_OPEN, G, 0)
+            puts(1, 3, "[ FIREWALL BREACHED ]  candado abierto — ACCESS", cp(G, True))
+            puts(h - 2, 3, "handshake ok · perimetro superado", cp(G))
+        stdscr.refresh()
+        if stdscr.getch() != -1: break
+        time.sleep(0.05)
+    time.sleep(0.5)
+    stdscr.nodelay(False); stdscr.erase()
+
+# ── calavera · SYSTEM PWNED ──────────────────────────────────────────────
+def skull_scene(stdscr):
+    h, w = stdscr.getmaxyx()
+    sw = max(len(l) for l in SKULL); sh = len(SKULL)
+    x0 = max(1, (w - sw) // 2); y0 = max(0, (h - sh) // 2 - 1)
+    stdscr.nodelay(True)
+    for f in range(9):                        # la calavera se decodea desde el ruido
+        p = f / 8
+        stdscr.erase()
+        for i, line in enumerate(SKULL):
+            _put_str(stdscr, y0 + i, x0, line if p >= 1 else _scr(line, p), cp(G, True))
+        stdscr.refresh()
+        if stdscr.getch() != -1: break
+        time.sleep(0.05)
+    msg = "S Y S T E M   P W N E D"
+    sub = "root@phantomcorp:~# whoami  ->  root"
+    for b in range(7):                        # parpadeo rojo/ambar
+        for i, line in enumerate(SKULL):
+            _put_str(stdscr, y0 + i, x0, line, cp(G, True))
+        _put_str(stdscr, y0 + sh + 1, max(1, (w - len(msg)) // 2), msg, cp(R if b % 2 == 0 else A, True))
+        _put_str(stdscr, y0 + sh + 2, max(1, (w - len(sub)) // 2), sub, cp(D))
+        stdscr.refresh()
+        if stdscr.getch() != -1: break
+        time.sleep(0.16)
     stdscr.nodelay(False); stdscr.erase()
 
 # ── efecto "desencriptado" de un bloque ASCII ────────────────────────────
 def decrypt_reveal(stdscr, art, y0, col, w, center, m, frames=13):
-    noise = "01<>|/\\=+*#$%&@ABCDEF01ﾘﾂ▓▒░"
+    noise = "01<>|/\\=+*#$%&@ABCDEF#*+.:"
     stdscr.nodelay(True)
     for f in range(frames + 1):
         pr = f / frames
@@ -338,43 +569,71 @@ def decrypt_reveal(stdscr, art, y0, col, w, center, m, frames=13):
     stdscr.nodelay(False)
 
 # ── dibujo de una slide ──────────────────────────────────────────────────
-def put_line(stdscr, y, x, segs, center=False, w=0):
-    if center:
-        total = sum(len(t) for t, _ in segs)
-        x = max(2, (w - total) // 2)
-    for text, color in segs:
-        if not text:
-            continue
-        try:
-            stdscr.addstr(y, x, text, cp(color, bold=(color in (G, H, A))))
-        except curses.error:
-            pass
-        x += len(text)
+NOISE = "01<>|/=+*#$%&@ABCDEFabcdef#*+."
 
-def draw_slide(stdscr, idx, animate=False):
-    stdscr.erase()
+def _scr(t, p):    # scramble: cada char es final (prob p) o ruido
+    return "".join(c if (c == " " or random.random() < p) else random.choice(NOISE) for c in t)
+
+def _put_str(stdscr, y, x, s, attr):
     h, w = stdscr.getmaxyx()
-    s = SLIDES[idx]
-    center = s.get("center", False)
+    if 0 <= y < h and 0 <= x < w - 1:
+        try: stdscr.addstr(y, x, s[:w - 1 - x], attr)
+        except curses.error: pass
+
+def _footer(idx):
+    return [(f"[{idx+1:02d}/{N}]  ", D), ("← →/espacio", G), (" avanzar · ", D),
+            ("p", G), (" atrás · ", D), ("g", G), (" ir · ", D), ("q", R), (" salir", D)]
+
+def _layout(stdscr, idx):
+    h, w = stdscr.getmaxyx()
+    s = SLIDES[idx]; center = s.get("center", False)
     m = max(3, (w - 74) // 2) if not center else 2
-    y = 2
+    ops = []; y = 2
     if s.get("kicker"):
-        put_line(stdscr, y, m, [("// " + s["kicker"], G)]); y += 2
+        ops.append((y, m, [("// " + s["kicker"], G)])); y += 2
     if s.get("art"):
         art, col = s["art"]
-        if animate:
-            decrypt_reveal(stdscr, art, y, col, w, center, m)
         for line in art:
-            put_line(stdscr, y, m, [(line, col)], center=center, w=w); y += 1
+            x = max(2, (w - len(line)) // 2) if center else m
+            ops.append((y, x, [(line, col)])); y += 1
         y += 1
     elif s.get("title"):
-        put_line(stdscr, y, m, [("» " + s["title"], W)]); y += 2
+        ops.append((y, m, [("» " + s["title"], W)])); y += 2
     for line in s["lines"]:
-        put_line(stdscr, y, m, line, center=center, w=w); y += 1
-    foot = [(f"[{idx+1:02d}/{N}]  ", D), ("← →/espacio", G), (" avanzar · ", D),
-            ("p", G), (" atrás · ", D), ("g", G), (" ir · ", D), ("q", R), (" salir", D)]
-    put_line(stdscr, h - 1, 2, foot)
+        x = max(2, (w - sum(len(t) for t, _ in line)) // 2) if center else m
+        ops.append((y, x, line)); y += 1
+    return ops, h, w
+
+def _paint(stdscr, ops, h, idx, p=1.0):
+    stdscr.erase()
+    for y, x, segs in ops:
+        xx = x
+        for text, color in segs:
+            t = text if p >= 1.0 else _scr(text, p)
+            _put_str(stdscr, y, xx, t, cp(color, bold=(color in (G, H, A))))
+            xx += len(text)
+    fx = 2
+    for text, color in _footer(idx):
+        _put_str(stdscr, h - 1, fx, text, cp(color, bold=(color in (G, H, A)))); fx += len(text)
     stdscr.refresh()
+
+def draw_slide(stdscr, idx, animate=False, frames=9):
+    ops, h, w = _layout(stdscr, idx)
+    if not animate:
+        _paint(stdscr, ops, h, idx, 1.0); return
+    stdscr.nodelay(True)                       # efecto "decode": ruido -> texto
+    for f in range(frames + 1):
+        p = f / frames
+        _paint(stdscr, ops, h, idx, p)
+        if p < 1.0:
+            k = stdscr.getch()
+            if k != -1:                        # tecla = saltar animación y no perder el input
+                _paint(stdscr, ops, h, idx, 1.0)
+                try: curses.ungetch(k)
+                except curses.error: pass
+                break
+            time.sleep(0.03)
+    stdscr.nodelay(False)
 
 def goto_prompt(stdscr):
     h, w = stdscr.getmaxyx()
@@ -394,11 +653,13 @@ def run(stdscr, intro=True):
         try:
             boot_sequence(stdscr)          # logs de arranque + ACCESS GRANTED
             radar_scan(stdscr)             # radar barriendo -> TARGET LOCKED
-            matrix_rain(stdscr, 2.0)       # lluvia de Matrix
+            firewall_breach(stdscr)        # candado que se abre -> FIREWALL BREACHED
+            skull_scene(stdscr)            # calavera -> SYSTEM PWNED
+            matrix_rain(stdscr, 1.8)       # lluvia de Matrix
         except curses.error: pass
     i = 0
-    show = lambda j, anim=None: draw_slide(stdscr, j, animate=(SLIDES[j].get("art") is not None) if anim is None else anim)
-    show(0, anim=intro)          # el logo se "desencripta" al abrir
+    show = lambda j: draw_slide(stdscr, j, animate=True)   # cada slide "decodea" al entrar
+    show(0)
     while True:
         k = stdscr.getch()
         if k in (ord("q"), ord("Q")):
@@ -426,6 +687,10 @@ def dump():
             print("".join(t for t, _ in line))
 
 def main():
+    try:
+        locale.setlocale(locale.LC_ALL, "")
+    except locale.Error:
+        pass
     if "--all" in sys.argv:
         dump(); return
     intro = "--no-intro" not in sys.argv
