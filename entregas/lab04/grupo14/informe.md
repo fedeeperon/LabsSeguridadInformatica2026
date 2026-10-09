@@ -70,8 +70,122 @@ La cuarta respuesta posible, **aceptar**, la aplicamos a la caída del sitio web
 
 ## 2. Parte B — Riesgo cuantitativo
 
-*(en curso)*
+Montos en USD por año. Supuestos de cada estimación:
+
+| Riesgo | SLE | Por qué ese SLE | ARO | Por qué ese ARO |
+|---|---:|---|---:|---|
+| R1 Filtración de tarjetas y DNI | 300.000 | Forense, notificación a clientes, multas de las marcas de tarjeta por incumplir PCI DSS, reemisión de tarjetas, pérdida de clientes | 0,25 | Servidor público sin parchear ni monitorear: una vez cada 4 años |
+| R2 Ransomware por acceso remoto sin MFA | 150.000 | Una a dos semanas sin operar, reconstrucción de equipos, posible extorsión | 0,30 | Acceso remoto con solo contraseña es la puerta más atacada: una vez cada ~3 años |
+| R3 Toma de cuentas por contraseñas débiles | 25.000 | Fraude o abuso de una cuenta, limpieza y reseteo | 1,20 | Pasa seguido (phishing, reutilización): algo más de una vez por año |
+| R4 Pérdida del disco de backups | 60.000 | Datos que no se pueden reconstruir y horas de recarga manual | 0,10 | Robo, incendio o falla en la oficina: una vez cada 10 años |
+| R5 Caída o defacement del sitio | 8.000 | Ventas perdidas en uno o dos días y daño de imagen | 0,50 | Una vez cada 2 años |
+
+### B.1 — Ranking por ALE
+
+```text
+$ python3 src/riesgo.py priorizar --archivo riesgos.json
+      75000.00  Filtracion de datos de tarjetas y DNI por compromiso del servidor web publico
+      45000.00  Ransomware que entra por el acceso remoto de empleados sin MFA
+      30000.00  Toma de cuentas de empleados por contrasenas debiles o reutilizadas
+       6000.00  Perdida del disco de backups de la oficina (robo, incendio o falla)
+       4000.00  Caida o defacement del sitio web publico (DDoS o vandalismo)
+```
+
+**¿Coincide con la intuición?** En parte.
+
+- **Coincide:** que la filtración de tarjetas quede primera. Es el activo más
+  sensible y el más expuesto, y su impacto (PCI DSS más clientes) es enorme.
+- **No coincide (1):** la toma de cuentas (R3) nos parecía un riesgo "menor", y
+  queda casi pegada al ransomware. Cada evento cuesta poco, pero pasa seguido:
+  un SLE bajo con un ARO alto suma mucho. Una matriz cualitativa la habría
+  dejado en "medio" y la habríamos subestimado.
+- **No coincide (2):** los backups (R4) intuitivamente eran críticos, y quedan
+  anteúltimos con solo USD 6.000. Esto muestra un **límite del modelo**: el
+  ALE trata cada riesgo como independiente, pero los backups no son solo un
+  riesgo, son el control que reduce el SLE del ransomware (R2). Sin un backup
+  fuera del sitio, el SLE de R2 sería bastante mayor. Por eso en A.3 decidimos
+  mitigar D4 aunque su ALE propio sea bajo.
+- **Sensibilidad:** si el ARO de R2 subiera de 0,30 a 0,50, el ransomware
+  (75.000) empataría con R1. Los ARO son lo menos confiable del cálculo (ver
+  research).
+
+### B.2 — Control para el riesgo #1 y su ROI
+
+**Riesgo #1:** filtración de tarjetas y DNI (ALE USD 75.000).
+
+**Control propuesto** (la respuesta "evitar + mitigar" de D5):
+
+| Componente | Costo anual estimado |
+|---|---:|
+| Procesador de pagos certificado PCI DSS con tokenización: PhantomCorp deja de guardar números de tarjeta | 12.000 (comisiones y cuota) |
+| WAF administrado delante del servidor web | 6.000 |
+| Parcheo mensual y escaneo de vulnerabilidades (PR.PS-02, ID.RA-01) | 8.000 |
+| Cifrado de DNI en reposo y migración de la base a un servidor interno | 4.000 |
+| **Total** | **30.000** |
+
+**ALE después del control:**
+
+- **SLE:** baja de 300.000 a 80.000. Sin tarjetas no hay multas PCI ni
+  reemisión; quedan los costos por los DNI, que además están cifrados.
+- **ARO:** baja de 0,25 a 0,15, por el WAF y el parcheo.
+- **ALE después:** 80.000 × 0,15 = **USD 12.000**.
+
+```text
+$ python3 src/riesgo.py roi --antes 75000 --despues 12000 --costo 30000
+1.100
+```
+
+**ROI = (75.000 − 12.000 − 30.000) / 30.000 = 1,10.** Cada dólar invertido evita
+USD 2,10 de pérdida esperada, o sea que recupera el dólar y deja USD 1,10 de
+ganancia. **Conviene.** Además, tiene margen: aunque el SLE residual fuera
+120.000 (ALE 18.000), el ROI seguiría siendo positivo (0,90).
+
+### B.3 — Un riesgo para aceptar: caída o defacement del sitio (R5)
+
+- **ALE actual:** 8.000 × 0,5 = USD 4.000.
+- **Control evaluado:** un servicio anti-DDoS/CDN premium a USD 6.000 por año,
+  que bajaría el ARO a 0,125 (ALE después: USD 1.000).
+
+```text
+$ python3 src/riesgo.py roi --antes 4000 --despues 1000 --costo 6000
+-0.500
+```
+
+**ROI = −0,50:** el control cuesta USD 6.000 para evitar USD 3.000 de pérdida
+esperada. **No conviene mitigar.** La respuesta correcta es **aceptar** el
+riesgo, con tres condiciones:
+
+1. Dejarlo **documentado** como riesgo aceptado, dentro de la tolerancia definida
+   por la dirección (GV.RM-02) y en el registro de riesgos (ID.RA-06).
+2. Hacer lo gratuito: usar el plan básico del CDN y un monitor de disponibilidad
+   que avise si el sitio se cae.
+3. Revisarlo si cambia el negocio. Si el sitio empieza a concentrar ventas, sube
+   el SLE y la cuenta puede dar distinto.
+
+Un caso aparte es el **riesgo residual del ransomware (R2)**: aun con MFA y
+backups queda un remanente. Ese remanente se **transfiere** con el ciberseguro
+de D3, porque un evento poco frecuente pero caro es justo lo que cubre un seguro.
+
+### Bitácora
+
+```bash
+cd entregas/lab04/grupo14
+python3 src/verificar.py                                   # 3 OK
+python3 src/riesgo.py ale --sle 50000 --aro 0.4            # 20000.00
+python3 src/riesgo.py roi --antes 20000 --despues 5000 --costo 8000   # 0.875
+python3 src/riesgo.py priorizar --archivo riesgos.json     # ranking B.1
+python3 src/riesgo.py roi --antes 75000 --despues 12000 --costo 30000 # 1.100 (B.2)
+python3 src/riesgo.py roi --antes 4000 --despues 1000 --costo 6000    # -0.500 (B.3)
+```
 
 ## 3. Anexo — tu riesgos.json
 
-*(en curso)*
+```json
+[
+  {"nombre": "Filtracion de datos de tarjetas y DNI por compromiso del servidor web publico", "sle": 300000, "aro": 0.25},
+  {"nombre": "Ransomware que entra por el acceso remoto de empleados sin MFA", "sle": 150000, "aro": 0.3},
+  {"nombre": "Toma de cuentas de empleados por contrasenas debiles o reutilizadas", "sle": 25000, "aro": 1.2},
+  {"nombre": "Perdida del disco de backups de la oficina (robo, incendio o falla)", "sle": 60000, "aro": 0.1},
+  {"nombre": "Caida o defacement del sitio web publico (DDoS o vandalismo)", "sle": 8000, "aro": 0.5}
+]
+```
