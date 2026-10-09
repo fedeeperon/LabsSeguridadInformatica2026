@@ -6,3 +6,4 @@
 | Laureano Gomez Redondo | ____ | @Laureano-GR |
 | Martín Cesano | ____ | @____ |
 | Martín Gaido | ____ | @martingaidoo |
+| Valentina Chiapero | ____ | @____ |

@@ -1,6 +1,6 @@
 # Informe — Laboratorio 04 · Marcos normativos y gestión
 
-**Grupo:** 14 · **Integrantes:** Fede Peron — @fedeeperon · Laureano Gomez Redondo — @Laureano-GR · Martín Cesano — @____ · Martín Gaido — @martingaidoo
+**Grupo:** 14 · **Integrantes:** Fede Peron — @fedeeperon · Laureano Gomez Redondo — @Laureano-GR · Martín Cesano — @____ · Martín Gaido — @martingaidoo · Valentina Chiapero — @____
 
 ## 0. Declaración de uso de IA
 
