@@ -68,8 +68,7 @@ def mac_ingenuo(clave: bytes, msg: bytes) -> str:
 
 def mac_hmac(clave: bytes, msg: bytes) -> str:
     """Devuelve el HMAC-SHA256 en hex. Esta es la forma CORRECTA."""
-    # TODO: implementá esto usando el módulo hmac.
-    raise NotImplementedError("Completá mac_hmac()")
+    return hmac.new(clave, msg, hashlib.sha256).hexdigest()
 
 def verificar_mac(esperado: str, recibido: str) -> bool:
     """Compara dos MAC en hex. DEBE ser en tiempo constante para no filtrar
