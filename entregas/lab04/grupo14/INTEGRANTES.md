@@ -2,8 +2,8 @@
 
 | Nombre y apellido | Legajo | Usuario de GitHub |
 |---|---|---|
-| Fede Peron | ____ | @fedeeperon |
+| Fede Peron | 15045 | @fedeeperon |
 | Laureano Gomez Redondo | ____ | @Laureano-GR |
-| Martín Cesano | ____ | @____ |
-| Martín Gaido | ____ | @martingaidoo |
-| Valentina Chiapero | ____ | @____ |
+| Martín Cesano | 15341 | @____ |
+| Martín Gaido | 151888 | @martingaidoo |
+| Valentina Chiapero | 15153 | @____ |
