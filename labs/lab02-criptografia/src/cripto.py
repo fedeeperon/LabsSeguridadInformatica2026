@@ -75,8 +75,7 @@ def verificar_mac(esperado: str, recibido: str) -> bool:
     """Compara dos MAC en hex. DEBE ser en tiempo constante para no filtrar
     información por el tiempo de comparación.
     Pista: hmac.compare_digest."""
-    # TODO: implementá esto.
-    raise NotImplementedError("Completá verificar_mac()")
+    return hmac.compare_digest(esperado, recibido)
 
 
 def main() -> int:
