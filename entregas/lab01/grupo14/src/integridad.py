@@ -182,16 +182,31 @@ def generar_manifiesto(directorio: Path, salida: Path) -> dict[str, str]:
           inserción, así que esto alcanza.
         · Reusá `sha256_archivo()`. No reescribas el bucle de lectura.
     """
-    # ----------------------------------------------------------------------
-    # TODO 1: implementar el recorrido y la construcción del manifiesto.
-    #         Borrá el `raise` de abajo y escribí tu código.
-    # ----------------------------------------------------------------------
-    raise NotImplementedError(
-        "TODO 1 de 4 — generar_manifiesto() sin implementar.\n"
-        "  Qué falta: recorrer el directorio recursivamente y devolver el\n"
-        "  diccionario {ruta_relativa_posix: digest_sha256}, ordenado por clave.\n"
-        "  Leé el docstring de esta función: están los requisitos y las pistas."
-    )
+    manifiesto = {
+        ruta_relativa: sha256_archivo(directorio / ruta_relativa)
+        for ruta_relativa in _archivos_del_directorio(directorio, salida)
+    }
+    return dict(sorted(manifiesto.items()))
+
+
+def _archivos_del_directorio(directorio: Path, excluir: Path) -> set[str]:
+    """Devuelve las rutas relativas (POSIX) de los archivos regulares de
+    `directorio`, recorriendo recursivamente y excluyendo `excluir`.
+
+    Se comparte entre `generar` y `verificar` para que ambos vean exactamente
+    el mismo conjunto de archivos.
+    """
+    excluir_resuelto = excluir.resolve()
+    rutas = set()
+    for ruta in directorio.rglob("*"):
+        # Solo archivos regulares. Los enlaces simbólicos se ignoran: seguirlos
+        # permitiría que un enlace apunte fuera del directorio monitoreado.
+        if ruta.is_symlink() or not ruta.is_file():
+            continue
+        if ruta.resolve() == excluir_resuelto:
+            continue
+        rutas.add(ruta.relative_to(directorio).as_posix())
+    return rutas
 
 
 # ==========================================================================
@@ -252,16 +267,22 @@ def verificar_manifiesto(
           Un consumidor que tiene que hacer `.get(clave, [])` es un consumidor
           al que le pasaste un contrato flojo.
     """
-    # ----------------------------------------------------------------------
-    # TODO 2: implementar la clasificación en OK / MODIFICADO / FALTANTE / NUEVO.
-    #         Borrá el `raise` de abajo y escribí tu código.
-    # ----------------------------------------------------------------------
-    raise NotImplementedError(
-        "TODO 2 de 4 — verificar_manifiesto() sin implementar.\n"
-        "  Qué falta: comparar el directorio contra el manifiesto y devolver\n"
-        "  el diccionario con las cuatro categorías OK/MODIFICADO/FALTANTE/NUEVO.\n"
-        "  Leé el docstring de esta función: está la estructura exacta esperada."
-    )
+    del_disco = _archivos_del_directorio(directorio, ruta_manifiesto)
+    del_manifiesto = set(manifiesto)
+
+    ok, modificados = [], []
+    for ruta in del_disco & del_manifiesto:
+        if sha256_archivo(directorio / ruta) == manifiesto[ruta]:
+            ok.append(ruta)
+        else:
+            modificados.append(ruta)
+
+    return {
+        ESTADO_OK: sorted(ok),
+        ESTADO_MODIFICADO: sorted(modificados),
+        ESTADO_FALTANTE: sorted(del_manifiesto - del_disco),
+        ESTADO_NUEVO: sorted(del_disco - del_manifiesto),
+    }
 
 
 # ==========================================================================
@@ -310,17 +331,13 @@ def distancia_hamming_bits(digest_a: bytes, digest_b: bytes) -> int:
         · `int.bit_count()` cuenta los bits en 1 de un entero (Python 3.10+).
           Si estás en una versión anterior: `bin(n).count("1")`.
     """
-    # ----------------------------------------------------------------------
-    # TODO 3: implementar la distancia de Hamming EN BITS.
-    #         Borrá el `raise` de abajo y escribí tu código.
-    # ----------------------------------------------------------------------
-    raise NotImplementedError(
-        "TODO 3 de 4 — distancia_hamming_bits() sin implementar.\n"
-        "  Qué falta: contar en cuántos BITS (no caracteres hex) difieren\n"
-        "  los dos digests recibidos como bytes crudos.\n"
-        "  Leé el docstring de esta función: la advertencia sobre bits vs. hex\n"
-        "  es el punto del ejercicio."
-    )
+    if len(digest_a) != len(digest_b):
+        raise ValueError(
+            f"los digests tienen distinto largo ({len(digest_a)} y {len(digest_b)} bytes)"
+        )
+    # El XOR de cada par de bytes deja en 1 los bits que difieren; se cuentan.
+    # `bin(n).count("1")` equivale a `n.bit_count()` y funciona también en 3.9.
+    return sum(bin(byte_a ^ byte_b).count("1") for byte_a, byte_b in zip(digest_a, digest_b))
 
 
 # ==========================================================================
@@ -370,18 +387,13 @@ def calcular_mac(clave: bytes, mensaje: bytes, tag_esperado: str | None = None) 
           y dio mal" son cosas distintas, y confundirlas en un sistema de
           seguridad es exactamente cómo se construye un falso negativo.
     """
-    # ----------------------------------------------------------------------
-    # TODO 4: implementar el cálculo del HMAC-SHA256 y la verificación
-    #         en tiempo constante.
-    #         Borrá el `raise` de abajo y escribí tu código.
-    # ----------------------------------------------------------------------
-    raise NotImplementedError(
-        "TODO 4 de 4 — calcular_mac() sin implementar.\n"
-        "  Qué falta: calcular el HMAC-SHA256 del mensaje con la clave y,\n"
-        "  si se pasó --verificar, comparar contra el tag esperado usando\n"
-        "  hmac.compare_digest().\n"
-        "  Leé el docstring de esta función: la comparación con == está prohibida."
-    )
+    tag = hmac.new(clave, mensaje, hashlib.sha256).hexdigest()
+    if tag_esperado is None:
+        return tag, None
+    # Comparación en tiempo constante. Se normaliza a minúsculas y se pasa a
+    # bytes porque compare_digest() rechaza str con caracteres no ASCII.
+    tag_recibido = tag_esperado.strip().lower().encode("utf-8")
+    return tag, hmac.compare_digest(tag.encode("ascii"), tag_recibido)
 
 
 # ==========================================================================
